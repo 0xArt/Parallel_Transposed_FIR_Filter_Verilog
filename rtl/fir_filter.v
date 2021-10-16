@@ -22,16 +22,16 @@
 
 
 module fir_filter
-#(parameter NUM_TAPS = 60, 
-  parameter DATA_WIDTH = 16, 
-  parameter COEF_WIDTH = 16, 
-  parameter PORT_A_WIDTH = 18,
+#(parameter NUM_TAPS     = 60, 
+  parameter DATA_WIDTH   = 16, 
+  parameter COEF_WIDTH   = 16, 
+  parameter PORT_A_WIDTH = 30,
   parameter PORT_B_WIDTH = 18)
 (
-        input  wire                            i_clk,
-        input  wire                            i_rst,
-        input  wire signed [DATA_WIDTH-1:0]    i_data, 
-        output reg signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]    o_data = 0
+        input  wire                                         i_clk,
+        input  wire                                         i_rst,
+        input  wire signed [DATA_WIDTH-1:0]                 i_data, 
+        output reg  signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  o_data = 0
 );
 
 
@@ -41,7 +41,9 @@ reg signed [PORT_A_WIDTH-1:0] dsp_port_a [NUM_TAPS-1:0];
 //extend input data to PORT_A_WIDTH bits for PORTA of DSP48 SLICE
 always@(posedge i_clk) begin
     if(i_rst)begin
-        dsp_port_a[i] <= 0;
+        for(i=0; i<NUM_TAPS; i=i+1)begin
+            dsp_port_a[i] <= 0;
+        end
     end
     else begin
         for(i=0; i<NUM_TAPS; i=i+1)begin
@@ -58,13 +60,81 @@ always@(posedge i_clk) begin
     end
 end
 
+
 reg signed [COEF_WIDTH-1:0]  fir_coefficients [NUM_TAPS-1:0];
+/*
 initial begin
     $readmemh("FIR_LPF_COEFF.mem", fir_coefficients);
 end
+*/
+
+
+always@(posedge i_clk)begin
+    fir_coefficients[0]  <= 16'h0000; 
+    fir_coefficients[1]  <= 16'h0001; 
+    fir_coefficients[2]  <= 16'h0005; 
+    fir_coefficients[3]  <= 16'h000C; 
+    fir_coefficients[4]  <= 16'h0016; 
+    fir_coefficients[5]  <= 16'h0025; 
+    fir_coefficients[6]  <= 16'h0037; 
+    fir_coefficients[7]  <= 16'h004E; 
+    fir_coefficients[8]  <= 16'h0069; 
+    fir_coefficients[9]  <= 16'h008B; 
+    fir_coefficients[10] <= 16'h00B2; 
+    fir_coefficients[11] <= 16'h00E0; 
+    fir_coefficients[12] <= 16'h0114; 
+    fir_coefficients[13] <= 16'h014E; 
+    fir_coefficients[14] <= 16'h018E; 
+    fir_coefficients[15] <= 16'h01D3; 
+    fir_coefficients[16] <= 16'h021D; 
+    fir_coefficients[17] <= 16'h026A; 
+    fir_coefficients[18] <= 16'h02BA; 
+    fir_coefficients[19] <= 16'h030B; 
+    fir_coefficients[20] <= 16'h035B; 
+    fir_coefficients[21] <= 16'h03AA; 
+    fir_coefficients[22] <= 16'h03F5; 
+    fir_coefficients[23] <= 16'h043B; 
+    fir_coefficients[24] <= 16'h047B; 
+    fir_coefficients[25] <= 16'h04B2; 
+    fir_coefficients[26] <= 16'h04E0; 
+    fir_coefficients[27] <= 16'h0504; 
+    fir_coefficients[28] <= 16'h051C; 
+    fir_coefficients[29] <= 16'h0528; 
+    fir_coefficients[30] <= 16'h0528; 
+    fir_coefficients[31] <= 16'h051C; 
+    fir_coefficients[32] <= 16'h0504; 
+    fir_coefficients[33] <= 16'h04E0; 
+    fir_coefficients[34] <= 16'h04B2; 
+    fir_coefficients[35] <= 16'h047B; 
+    fir_coefficients[36] <= 16'h043B; 
+    fir_coefficients[37] <= 16'h03F5; 
+    fir_coefficients[38] <= 16'h03AA; 
+    fir_coefficients[39] <= 16'h035B; 
+    fir_coefficients[40] <= 16'h030B; 
+    fir_coefficients[41] <= 16'h02BA; 
+    fir_coefficients[42] <= 16'h026A; 
+    fir_coefficients[43] <= 16'h021D; 
+    fir_coefficients[44] <= 16'h01D3; 
+    fir_coefficients[45] <= 16'h018E; 
+    fir_coefficients[46] <= 16'h014E; 
+    fir_coefficients[47] <= 16'h0114; 
+    fir_coefficients[48] <= 16'h00E0; 
+    fir_coefficients[49] <= 16'h00B2; 
+    fir_coefficients[50] <= 16'h008B; 
+    fir_coefficients[51] <= 16'h0069; 
+    fir_coefficients[52] <= 16'h004E; 
+    fir_coefficients[53] <= 16'h0037; 
+    fir_coefficients[54] <= 16'h0025; 
+    fir_coefficients[55] <= 16'h0016; 
+    fir_coefficients[56] <= 16'h000C; 
+    fir_coefficients[57] <= 16'h0005; 
+    fir_coefficients[58] <= 16'h0001; 
+    fir_coefficients[59] <= 16'h0000;
+end
+
 
 reg signed [PORT_B_WIDTH-1:0] dsp_port_b [NUM_TAPS-1:0]; 
-//extend coeffecient data to PORT_B_WIDTH bits for PORTA of DSP48 SLICE
+//extend coeffecient data to PORT_B_WIDTH bits for PORTB of DSP48 SLICE
 always@(posedge i_clk) begin
     if(i_rst)begin
         for(i=0; i<NUM_TAPS; i=i+1)begin
@@ -103,7 +173,7 @@ always@(posedge i_clk) begin
 end
 
 //accumulation stages
-reg signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0] dsp_accum_register [NUM_TAPS-1:0];
+reg signed [PORT_A_WIDTH+PORT_B_WIDTH:0] dsp_accum_register [NUM_TAPS-1:0];
 always@(posedge i_clk) begin
     if(i_rst)begin
         for(i=0; i<NUM_TAPS; i=i+1)begin
@@ -117,7 +187,6 @@ always@(posedge i_clk) begin
             end
             else begin
                 dsp_accum_register[i] <= dsp_mult_register[i]+dsp_accum_register[i+1];
-
             end
         end
     end
