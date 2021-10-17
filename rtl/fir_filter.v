@@ -10,7 +10,7 @@
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
-// Description: Piplined Parallel Transposed FIR Filter
+// Description: Pipelined Parallel Transposed FIR Filter
 // 
 // Dependencies: 
 // 
@@ -28,10 +28,10 @@
   parameter PORT_A_WIDTH = 16,
   parameter PORT_B_WIDTH = 16)
 (
-        input  wire                                         i_clk,
-        input  wire                                         i_rst,
-        input  wire signed [DATA_WIDTH-1:0]                 i_data, 
-        output reg  signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  o_data = 0
+        input  wire                          i_clk,
+        input  wire                          i_rst,
+        input  wire signed [DATA_WIDTH-1:0]  i_data, 
+        output reg  signed [DATA_WIDTH-1:0]  o_data = 0
 );
 
 
@@ -69,6 +69,7 @@ initial begin
 end
 */
 
+//1MHz cutoff Blackman 1.15 fixed point
 wire signed [COEF_WIDTH-1:0]  fir_coefficients [NUM_TAPS-1:0];
 assign fir_coefficients[0]  = 16'h0000; 
 assign fir_coefficients[1]  = 16'h0000; 
@@ -198,8 +199,9 @@ always@(posedge i_clk)begin
         o_data <= 0;
     end
     else begin
-        o_data <= dsp_accum_register[0];
-    end
+        //we are using 1.15 fixed point coeffecients so we need to divide by 15 to interpret our result
+        o_data <= (dsp_accum_register[0] >> (COEF_WIDTH-1));
+    end 
 end
 
 
