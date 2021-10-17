@@ -33,8 +33,6 @@ module fir_filter_tb(
     reg [31:0] phase_step = 16'd50;
     
         
-    //wire signed [23:0] padded_sine_wave;
-    //assign padded_sine_wave = {sine_wave[15], 8'd0, sine_wave[15:0]};
     //clock gen
     always begin
         #2
@@ -55,9 +53,9 @@ module fir_filter_tb(
         //sine_wave_file = $fopen("sine_wave_file.csv", "w");
         
         //sweep up in frequency and record data to csv for further analysis
-        for(i=0; i<20000000; i=i+100000)begin
+        for(i=32'h000FFFFF; i<32'hFFFFFFFF; i=i+32'h00100000)begin
             phase_step = i;
-            repeat (100000)begin
+            repeat (500)begin
                 @(posedge clk);
             end 
         end

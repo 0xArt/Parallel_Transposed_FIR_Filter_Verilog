@@ -23,8 +23,8 @@ def float_to_fixed(num, fractional_bits):
 
 #fir filter coeff creation
 num_taps = 60;
-filter_cutoff = 500;
-sampling_freq = 44100;
+filter_cutoff = 1e6;
+sampling_freq = 40e6;
 nyquist_freq = sampling_freq/2;
 coeff_list = signal.firwin(numtaps=num_taps, cutoff=filter_cutoff, window='blackman', pass_zero=True, fs=sampling_freq)
 
