@@ -28,10 +28,10 @@ module fir_filter_tb(
     
     reg clk = 0;
     reg rst = 0;    
-    
     wire signed [15:0] sine_wave;
     reg [31:0] phase_step = 16'd50;
-    
+    wire signed [15:0] filtered_sine_wave;
+
         
     //clock gen
     always begin
@@ -49,10 +49,8 @@ module fir_filter_tb(
         @(posedge clk);
         rst = 0;
         @(posedge clk);
-
-        //sine_wave_file = $fopen("sine_wave_file.csv", "w");
         
-        //sweep up in frequency and record data to csv for further analysis
+        //sweep up in frequency
         for(i=32'h000FFFFF; i<32'hFFFFFFFF; i=i+32'h00100000)begin
             phase_step = i;
             repeat (500)begin
@@ -78,8 +76,7 @@ module fir_filter_tb(
          .i_clk(clk)
         ,.i_rst(rst)
         ,.i_data(sine_wave)
-        ,.o_data()
-    
+        ,.o_data(filtered_sine_wave)
     );
     
     

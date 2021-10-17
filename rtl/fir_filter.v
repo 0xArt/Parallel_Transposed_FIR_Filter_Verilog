@@ -199,7 +199,7 @@ always@(posedge i_clk)begin
         o_data <= 0;
     end
     else begin
-        //we are using 1.15 fixed point coeffecients so we need to divide by 15 to interpret our result
+        //we are using 1.15 fixed point coeffecients so we need to divide by 2^15 to interpret our result
         o_data <= (dsp_accum_register[0] >> (COEF_WIDTH-1));
     end 
 end
