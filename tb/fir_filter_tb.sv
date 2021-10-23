@@ -35,7 +35,7 @@ module fir_filter_tb(
         
     //clock gen
     always begin
-        #2
+        #10
         clk = ~clk;
     end
     
