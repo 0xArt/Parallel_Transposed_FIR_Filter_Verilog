@@ -55,7 +55,7 @@ initial begin
     repeat(100) @(posedge clock);
     
     //sweep up in frequency
-    //-3dB point with 2MHz cutoff Blackman filter occurs at 'h53fffff
+    //-3dB point with 2MHz cutoff Blackman filter occurs at 'h62fffff
     for (i=32'h000FFFFF; i<32'hFFFFFFFF; i=i+32'h00100000) begin
         test_phase_step = i;
 
