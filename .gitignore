@@ -1,0 +1,7 @@
+*
+!*/
+!*.*
+presynth/*
+vsim.wlf
+*.ini
+*.csv
