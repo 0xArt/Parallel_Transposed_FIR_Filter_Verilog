@@ -28,13 +28,15 @@ localparam  ROM_WIDTH                   =   16;
 localparam  PHASE_STEP_WIDTH            =   32;
 localparam  COEFFECIENT_WIDTH           =   16;
 localparam  FIR_FILTER_NUMBER_OF_TAPS   =   60;
+localparam  COEFFECIENT_FRACTION_WIDTH  =   15;
+localparam  OUTPUT_WIDTH                =   ROM_WIDTH+COEFFECIENT_WIDTH-COEFFECIENT_FRACTION_WIDTH;
 
 
 logic                           clock                   = 0;
 logic                           reset_n                 = 1;
 logic [PHASE_STEP_WIDTH-1:0]    test_phase_step         = 888;
 integer                         i;
-logic [16:0]                    test_output;
+logic [OUTPUT_WIDTH-1:0]        test_output;
 
 
 initial begin
@@ -91,18 +93,19 @@ sine_wave_generator_quarter(
 );
 
 
-wire                                    fir_filter_clock;
-wire                                    fir_filter_reset_n;
-wire [ROM_WIDTH-1:0]                    fir_filter_data;
-wire                                    fir_filter_enable;
+wire                    fir_filter_clock;
+wire                    fir_filter_reset_n;
+wire [ROM_WIDTH-1:0]    fir_filter_data;
+wire                    fir_filter_enable;
 
-wire [ROM_WIDTH+COEFFECIENT_WIDTH-1:0]  fir_filter_filtered_data;
-wire                                    fir_filter_filtered_data_valid;
+wire [OUTPUT_WIDTH-1:0] fir_filter_filtered_data;
+wire                    fir_filter_filtered_data_valid;
 
 fir_filter #(
     .NUM_TAPS       (FIR_FILTER_NUMBER_OF_TAPS),
     .DATA_WIDTH     (ROM_WIDTH),
     .COEF_WIDTH     (COEFFECIENT_WIDTH),
+    .FRACTION_WIDTH (COEFFECIENT_FRACTION_WIDTH),
     .PORT_A_WIDTH   (ROM_WIDTH),
     .PORT_B_WIDTH   (ROM_WIDTH)
 )

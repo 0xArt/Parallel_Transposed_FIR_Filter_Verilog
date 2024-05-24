@@ -21,19 +21,20 @@
 //////////////////////////////////////////////////////////////////////////////////
 (* use_dsp = "yes" *)
 module fir_filter#(
-    parameter NUM_TAPS     = 60, 
-    parameter DATA_WIDTH   = 16, 
-    parameter COEF_WIDTH   = 16, 
-    parameter PORT_A_WIDTH = 16,
-    parameter PORT_B_WIDTH = 16
+    parameter NUM_TAPS          = 60, 
+    parameter DATA_WIDTH        = 16, 
+    parameter COEF_WIDTH        = 16,
+    parameter FRACTION_WIDTH    = 15, 
+    parameter PORT_A_WIDTH      = 16,
+    parameter PORT_B_WIDTH      = 16
 )(
-        input  wire                                     clock,
-        input  wire                                     reset_n,
-        input  wire signed [DATA_WIDTH-1:0]             data, 
-        input  wire                                     enable,
+        input  wire                                                     clock,
+        input  wire                                                     reset_n,
+        input  wire signed [DATA_WIDTH-1:0]                             data, 
+        input  wire                                                     enable,
 
-        output reg  signed [DATA_WIDTH+COEF_WIDTH-1:0]  filtered_data,
-        output reg                                      filtered_data_valid
+        output reg  signed [DATA_WIDTH+COEF_WIDTH-FRACTION_WIDTH-1:0]   filtered_data,
+        output reg                                                      filtered_data_valid
 );
 
 integer i;
@@ -41,17 +42,17 @@ integer j;
 integer k;
 integer x;
 
-logic   signed [PORT_A_WIDTH-1:0]               _dsp_port_a         [NUM_TAPS-1:0]; 
-reg     signed [PORT_A_WIDTH-1:0]               dsp_port_a          [NUM_TAPS-1:0]; 
-logic   signed [PORT_B_WIDTH-1:0]               _dsp_port_b         [NUM_TAPS-1:0]; 
-reg     signed [PORT_B_WIDTH-1:0]               dsp_port_b          [NUM_TAPS-1:0]; 
-logic   signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  _dsp_mult_register  [NUM_TAPS-1:0];
-reg     signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  dsp_mult_register   [NUM_TAPS-1:0];
-logic   signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  _dsp_accum_register [NUM_TAPS-1:0];
-reg     signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  dsp_accum_register  [NUM_TAPS-1:0];
-logic   signed [DATA_WIDTH+COEF_WIDTH-1:0]      _filtered_data;
-logic   signed [COEF_WIDTH-1:0]                 fir_coefficients    [NUM_TAPS-1:0];
-logic                                           _filtered_data_valid;
+logic   signed [PORT_A_WIDTH-1:0]                           _dsp_port_a         [NUM_TAPS-1:0]; 
+reg     signed [PORT_A_WIDTH-1:0]                           dsp_port_a          [NUM_TAPS-1:0]; 
+logic   signed [PORT_B_WIDTH-1:0]                           _dsp_port_b         [NUM_TAPS-1:0]; 
+reg     signed [PORT_B_WIDTH-1:0]                           dsp_port_b          [NUM_TAPS-1:0]; 
+logic   signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]              _dsp_mult_register  [NUM_TAPS-1:0];
+reg     signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]              dsp_mult_register   [NUM_TAPS-1:0];
+logic   signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]              _dsp_accum_register [NUM_TAPS-1:0];
+reg     signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]              dsp_accum_register  [NUM_TAPS-1:0];
+logic   signed [DATA_WIDTH+COEF_WIDTH-FRACTION_WIDTH-1:0]   _filtered_data;
+logic   signed [COEF_WIDTH-1:0]                             fir_coefficients    [NUM_TAPS-1:0];
+logic                                                       _filtered_data_valid;
 
 
 //sim use only
@@ -132,7 +133,7 @@ always_comb begin
     _dsp_accum_register     = dsp_accum_register;
     //we are using 1.15 fixed point coeffecients so we need to divide by 2^15 to normalize and interpret our result
     //this removes the 15 bits of fractional data and just leave us with the integer portion
-    _filtered_data          = (dsp_accum_register[0] >> 15);
+    _filtered_data          = (dsp_accum_register[0] >> FRACTION_WIDTH);
     _filtered_data_valid    = 0;
 
     if (enable) begin
