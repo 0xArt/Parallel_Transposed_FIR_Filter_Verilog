@@ -11,7 +11,7 @@
 // Target Devices: 
 // Tool Versions: 
 // Description: Pipelined Parallel Transposed FIR Filter
-// 
+// Based on https://github.com/DHMarinov/Parallel-FIR-Filter
 // Dependencies: 
 // 
 // Revision:
