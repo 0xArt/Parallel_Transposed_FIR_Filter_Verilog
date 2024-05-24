@@ -30,8 +30,10 @@ module fir_filter#(
         input  wire                                     clock,
         input  wire                                     reset_n,
         input  wire signed [DATA_WIDTH-1:0]             data, 
+        input  wire                                     enable,
 
-        output reg  signed [DATA_WIDTH+COEF_WIDTH-1:0]  filtered_data
+        output reg  signed [DATA_WIDTH+COEF_WIDTH-1:0]  filtered_data,
+        output reg                                      filtered_data_valid
 );
 
 integer i;
@@ -49,6 +51,7 @@ logic   signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  _dsp_accum_register [NUM_TAPS-1:
 reg     signed [PORT_A_WIDTH+PORT_B_WIDTH-1:0]  dsp_accum_register  [NUM_TAPS-1:0];
 logic   signed [DATA_WIDTH+COEF_WIDTH-1:0]      _filtered_data;
 logic   signed [COEF_WIDTH-1:0]                 fir_coefficients    [NUM_TAPS-1:0];
+logic                                           _filtered_data_valid;
 
 
 //sim use only
@@ -123,53 +126,61 @@ assign fir_coefficients[59] = 16'h0000;
 */
 
 always_comb begin
-    _dsp_port_a         = dsp_port_a;
-    _dsp_port_b         = dsp_port_b;
-    _dsp_mult_register  = dsp_mult_register;
-    _dsp_accum_register = dsp_accum_register;
-    //we are using 1.15 fixed point coeffecients so we need to divide by 2^15 to interpret our result
-    _filtered_data      = (dsp_accum_register[0] >> (COEF_WIDTH-1));
+    _dsp_port_a             = dsp_port_a;
+    _dsp_port_b             = dsp_port_b;
+    _dsp_mult_register      = dsp_mult_register;
+    _dsp_accum_register     = dsp_accum_register;
+    //we are using 1.15 fixed point coeffecients so we need to divide by 2^15 to normalize and interpret our result
+    //this removes the 15 bits of fractional data and just leave us with the integer portion
+    _filtered_data          = (dsp_accum_register[0] >> 15);
+    _filtered_data_valid    = 0;
 
-    //extend input data to PORT_A_WIDTH bits for PORTA of DSP48 SLICE
-    for (i=0; i<NUM_TAPS; i=i+1) begin
-        for (j=0; j < PORT_A_WIDTH; j = j+ 1) begin
-            if (j < (DATA_WIDTH-1)) begin
-                _dsp_port_a[i][j]   = data[j];
+    if (enable) begin
+        _filtered_data_valid    = 1;
+
+        for (i=0; i<NUM_TAPS; i=i+1) begin
+            //extend input data to PORT_A_WIDTH bits for PORTA of DSP48 SLICE
+            for (j=0; j < PORT_A_WIDTH; j = j+ 1) begin
+                if (j < (DATA_WIDTH-1)) begin
+                    _dsp_port_a[i][j]   = data[j];
+                end
+                else begin
+                    //twos compliment extension must fill new width with sign bit
+                    _dsp_port_a[i][j]   = data[DATA_WIDTH-1];
+                end
+            end
+
+            for (k=0; k < PORT_B_WIDTH; k=k+1) begin
+                //extend coeffecient data to PORT_B_WIDTH bits for PORTB of DSP48 SLICE
+                if (k < (COEF_WIDTH-1))begin
+                    _dsp_port_b[i][k]   = fir_coefficients[i][k];
+                end
+                else begin
+                    //twos compliment extension must fill new width with sign bit
+                    _dsp_port_b[i][k]   = fir_coefficients[i][COEF_WIDTH-1];
+                end
+            end
+
+            _dsp_mult_register[i]       = dsp_port_a[i] * dsp_port_b[i];
+
+            if(i == (NUM_TAPS-1))begin
+                _dsp_accum_register[i]  = dsp_mult_register[i];
             end
             else begin
-                //twos compliment extension must fill new width with sign bit
-                _dsp_port_a[i][j]   = data[DATA_WIDTH-1];
+                _dsp_accum_register[i]  = dsp_mult_register[i] + dsp_accum_register[i+1];
             end
         end
-
-        for (k=0; k < PORT_B_WIDTH; k=k+1) begin
-            if (k < (COEF_WIDTH-1))begin
-                _dsp_port_b[i][k]   = fir_coefficients[i][k];
-            end
-            else begin
-                //twos compliment extension must fill new width with sign bit
-                _dsp_port_b[i][k]   = fir_coefficients[i][COEF_WIDTH-1];
-            end
-        end
-
-        _dsp_mult_register[i]       = dsp_port_a[i] * dsp_port_b[i];
-
-        if(i == (NUM_TAPS-1))begin
-            _dsp_accum_register[i]  = dsp_mult_register[i];
-        end
-        else begin
-            _dsp_accum_register[i]  = dsp_mult_register[i] + dsp_accum_register[i+1];
-        end
-
     end
+
 end
 
 
 always_ff @(posedge clock or negedge reset_n) begin
     if(!reset_n)begin
         filtered_data               <= 0;
+        filtered_data_valid         <= 0;
 
-        for(x=0; x<NUM_TAPS; x=x+1)begin
+        for (x=0; x<NUM_TAPS; x=x+1) begin
             dsp_port_a[x]           <= 0;
             dsp_port_b[x]           <= 0;
             dsp_mult_register[x]    <= 0;
@@ -177,11 +188,12 @@ always_ff @(posedge clock or negedge reset_n) begin
         end
     end
     else begin
+        filtered_data               <= _filtered_data;
+        filtered_data_valid         <= _filtered_data_valid;
         dsp_port_a                  <= _dsp_port_a;
         dsp_port_b                  <= _dsp_port_b;
         dsp_mult_register           <= _dsp_mult_register;
         dsp_accum_register          <= _dsp_accum_register;
-        filtered_data               <= _filtered_data;
     end
 end
 

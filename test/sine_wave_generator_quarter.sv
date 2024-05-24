@@ -26,14 +26,16 @@ module sine_wave_generator_quarter#(
 )(
     input   wire                                clock,
     input   wire                                reset_n,
+    input   wire                                enable,
     input   wire        [PHASE_STEP_WIDTH-1:0]  phase_step,
 
-    output  reg signed  [ROM_WIDTH-1:0]         generated_wave
+    output  reg signed  [ROM_WIDTH-1:0]         generated_wave,
+    output  reg                                 generated_wave_valid
 );
 
-reg signed [ROM_WIDTH-1:0] rom_memory [ROM_DEPTH-1:0];
+reg signed [ROM_WIDTH-1:0] memory [ROM_DEPTH-1:0];
 initial begin
-    $readmemh("./test/16x32768_sine_lut_quarter.mem", rom_memory);
+    $readmemh("./test/16x32768_sine_lut_quarter.mem", memory);
 end
 
 logic           [PHASE_STEP_WIDTH-1:0]          _accumulator;
@@ -43,12 +45,18 @@ logic                                           reverse;
 logic                                           invert;
 logic           [$clog2(ROM_DEPTH)-1:0]         look_up_table_index;
 logic signed    [ROM_WIDTH-1:0]                 _generated_wave;
+logic                                           _generated_wave_valid;
 
 always_comb begin
-    _accumulator    = accumulator + phase_step;
-    index           = accumulator[PHASE_STEP_WIDTH-1:(PHASE_STEP_WIDTH-1) - ($clog2(ROM_DEPTH)-1+2)];
-    reverse         = index[$clog2(ROM_DEPTH)];
-    invert          = index[$clog2(ROM_DEPTH)+1];
+    _generated_wave_valid   = 0;
+    index                   = accumulator[PHASE_STEP_WIDTH-1:(PHASE_STEP_WIDTH-1) - ($clog2(ROM_DEPTH)-1+2)];
+    reverse                 = index[$clog2(ROM_DEPTH)];
+    invert                  = index[$clog2(ROM_DEPTH)+1];
+
+    if  (enable) begin
+        _accumulator            = accumulator + phase_step;
+        _generated_wave_valid   = 1;
+    end
 
     if (reverse) begin
         look_up_table_index =   (ROM_DEPTH-1) - index[$clog2(ROM_DEPTH)-1:0];
@@ -58,21 +66,23 @@ always_comb begin
     end
 
     if (invert) begin
-        _generated_wave = -rom_memory[look_up_table_index];
+        _generated_wave = -memory[look_up_table_index];
     end
     else begin
-        _generated_wave = rom_memory[look_up_table_index];
+        _generated_wave = memory[look_up_table_index];
     end
 end
 
 always_ff @(posedge clock or negedge reset_n) begin
     if (!reset_n) begin
-        accumulator     <=  0;
-        generated_wave  <=  0;
+        accumulator             <= 0;
+        generated_wave          <= 0;
+        generated_wave_valid    <= 0;
     end
     else begin
-        accumulator     <= _accumulator;
-        generated_wave  <= _generated_wave;
+        accumulator             <= _accumulator;
+        generated_wave          <= _generated_wave;
+        generated_wave_valid    <= _generated_wave_valid;
     end
 end
 
